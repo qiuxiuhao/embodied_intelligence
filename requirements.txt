@@ -1,0 +1,4 @@
+mujoco
+gymnasium[mujoco]
+numpy
+matplotlib
