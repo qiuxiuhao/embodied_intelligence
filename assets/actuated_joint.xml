@@ -1,0 +1,72 @@
+<mujoco model="day3_actuated_joint">
+    <compiler angle="degree"/>
+
+    <option
+        timestep="0.002"
+        gravity="0 0 -9.81"
+    />
+
+    <worldbody>
+
+            <light
+                name="top_light"
+                pos="0 0 4"
+                dir="0 0 -1"
+            />
+
+            <geom
+                name="floor"
+                type="plane"
+                size="2 2 0.1"
+                rgba="0.8 0.8 0.8 1"
+            />
+
+            <!-- 单关节机械臂 -->
+            <body
+                name="arm"
+                pos="0 0 0.8"
+            >
+                <joint
+                    name="hinge_joint"
+                    type="hinge"
+                    axis="0 0 1"
+                    limited="true"
+                    range="-180 180"
+                    damping="0.1"
+                />
+                <geom
+                    name="arm_link"
+                    type="capsule"
+                    fromto="0 0 0  0.7 0 0"
+                    size="0.05"
+                    mass="1"
+                    rgba="0.2 0.4 0.8 1"
+                />
+                <!-- 机械臂末端 -->
+                <site
+                    name="tip"
+                    pos="0.7 0 0"
+                    size="0.04"
+                    rgba="1 0 0 1"
+                />
+            </body>
+
+    </worldbody>
+
+
+    <!-- ========================================= -->
+    <!-- Actuator                                  -->
+    <!-- ========================================= -->
+
+    <actuator>
+
+        <motor
+            name="joint_motor"
+            joint="hinge_joint"
+            gear="1"
+            ctrllimited="true"
+            ctrlrange="-3 3"
+        />
+
+    </actuator>
+</mujoco>
