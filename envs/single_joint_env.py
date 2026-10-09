@@ -151,8 +151,10 @@ class SingleJointEnv(gym.Env):
         #=========================
         # 3. Target
         #=========================
-        if (options is not None) and ("target_angle" in options):
-            self.target_angle = float(options["target_angle"])
+        if (options is not None) and ("target_deg" in options):
+            self.target_angle = np.deg2rad(float(options["target_deg"]) )
+        elif options is not None and "target_angle" in options:
+            self.target_angle = float( options["target_angle"])
         else:
             self.target_angle = self.np_random.uniform(low=np.deg2rad(-120.0), high=np.deg2rad(120.0))
 

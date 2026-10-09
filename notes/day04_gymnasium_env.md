@@ -38,9 +38,9 @@ Reward 是 task definition，不是 physics。
 
 当前：
 
-angle error < 2 degree
+angle error < 5 degree
 and
-velocity < 0.05 rad/s
+velocity < 0.0873 rad/s
 
 ## Truncated
 
