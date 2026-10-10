@@ -2,3 +2,4 @@ mujoco
 gymnasium[mujoco]
 numpy
 matplotlib
+torch

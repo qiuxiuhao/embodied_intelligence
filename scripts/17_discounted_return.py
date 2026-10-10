@@ -24,6 +24,7 @@ def discounted_returns(rewards,gamma):
     running_return = 0.0
     for t in reversed(range(len(rewards))):
         running_return = (rewards[t] + gamma*running_return)
+        returns[t] = running_return
     return returns
 
 for gamma in [0.0,0.9,0.99,1.0]:
