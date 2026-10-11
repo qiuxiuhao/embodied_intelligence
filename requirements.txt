@@ -3,3 +3,4 @@ gymnasium[mujoco]
 numpy
 matplotlib
 torch
+stable-baselines3
