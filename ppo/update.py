@@ -60,7 +60,7 @@ def ppo_update(model, optimizer, batch, advantages, returns, clip_coef=0.2, valu
             # ======================================
             # Total
             # ======================================
-            loss = (policy_loss + value_coef*value_loss -  entropy_coef * entropy_mean)
+            loss = (policy_loss + value_coef * value_loss -  entropy_coef * entropy_mean)
             optimizer.zero_grad()
             loss.backward()
 
