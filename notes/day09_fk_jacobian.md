@@ -29,7 +29,7 @@ q = [q1, q2, ..., q7]
 输出：
 
 TCP Position
-
+ 
 TCP Orientation
 
 数学：
@@ -122,7 +122,6 @@ df/dq ≈ [f(q+eps)-f(q-eps)] / (2eps)
 Home Configuration
 
 Perturbed Configuration
-
 
 ## 十一、Day 9 总结
 
