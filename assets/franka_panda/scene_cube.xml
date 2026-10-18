@@ -1,0 +1,25 @@
+<mujoco model="Day 11 Panda cube experiment">
+  <include file="scene.xml"/>
+  <!-- 使用国际单位制：m、kg、s；保留官方 Panda 及其执行器和接触默认配置。 -->
+  <option timestep="0.002" gravity="0 0 -9.81"/>
+  <worldbody>
+    <!-- 小型支撑台使接近路径避开机器人底座；台面高度 z = 0.20 m。 -->
+    <geom name="table" type="box" pos="0.50 0 0.10" size="0.18 0.22 0.10"
+          friction="1 0.005 0.0001" rgba="0.45 0.34 0.24 1"/>
+    <body name="cube" pos="0.50 0 0.225">
+      <freejoint name="cube_free"/>
+      <!-- 均匀方块边长 0.05 m、质量 0.10 kg；转动惯量 I = m*a^2/6，单位 kg·m²。 -->
+      <inertial pos="0 0 0" mass="0.10"
+                diaginertia="0.0000416666667 0.0000416666667 0.0000416666667"/>
+      <geom name="cube_geom" type="box" size="0.025 0.025 0.025"
+            friction="1 0.005 0.0001" condim="3" rgba="0.95 0.32 0.08 1"/>
+    </body>
+  </worldbody>
+  <!-- 原 home 仅有 9 个 qpos 值，补齐后会使 Cube 位于世界原点。
+       为本场景添加独立的完整关键帧，同时保留官方关键帧。 -->
+  <keyframe>
+    <key name="day11_home"
+         qpos="0 0 0 -1.57079 0 1.57079 -0.7853 0.04 0.04 0.50 0 0.225 1 0 0 0"
+         ctrl="0 0 0 -1.57079 0 1.57079 -0.7853 255"/>
+  </keyframe>
+</mujoco>

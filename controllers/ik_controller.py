@@ -11,8 +11,24 @@ from robotics.kinematics import (
 )
 
 
+def rotation_error_world(target_rotation, current_rotation):
+    """返回世界坐标系下的最短 SO(3) 旋转误差向量，单位 rad。
+
+    Jr 对应世界坐标系角速度，因此相对旋转矩阵为 R_target @ R_current.T。
+    四元数对数映射能够处理 180° 误差，避免简单叉乘在该角度退化。
+    """
+    relative = np.ascontiguousarray(target_rotation @ current_rotation.T)
+    quaternion = np.empty(4)
+    mujoco.mju_mat2Quat(quaternion, relative.reshape(9))
+    if quaternion[0] < 0:
+        quaternion *= -1
+    error = np.empty(3)
+    mujoco.mju_quat2Vel(error, quaternion, 1.0)
+    return error
+
+
 # ============================================================
-# 1. Panda DLS IK Solver
+# 1. Panda 阻尼最小二乘逆运动学求解器
 # ============================================================
 
 class PandaIKSolver:
@@ -151,11 +167,10 @@ class PandaIKSolver:
         position_error,
     ):
 
-        # Jp: (3, 7)
-        # error: (3,)
+        """复用阻尼最小二乘法，求解位置任务（3 行）或加权位姿任务（6 行）。"""
 
         # ----------------------------------------
-        # J * J^T
+        # 计算雅可比矩阵与其转置的乘积：J * J^T
         # ----------------------------------------
 
         jjt = (
@@ -173,11 +188,11 @@ class PandaIKSolver:
             +
             self.damping ** 2
             *
-            np.eye(3)
+            np.eye(jacobian.shape[0])
         )
 
         # ----------------------------------------
-        # 解一个 3 维线性方程组
+        # 解任务空间线性方程组（位置 3 维，位姿 6 维）
         # ----------------------------------------
 
         solution = np.linalg.solve(
@@ -223,7 +238,36 @@ class PandaIKSolver:
         self,
         target_position,
         initial_q=None,
+        target_rotation=None,
+        orientation_tolerance=0.01,
+        orientation_weight=0.15,
     ):
+        """求解位置或可选的完整位姿，仅修改求解器内部数据。
+
+        位置使用世界坐标，单位 m；旋转矩阵将 TCP 局部坐标映射到世界坐标；角度容差单位 rad。
+        orientation_weight 的单位为 m/rad，用于平衡阻尼最小二乘和线搜索中的平移、旋转误差。
+        不传 target_rotation 时保持 Day 10 的位置逆运动学行为。
+        """
+        if target_rotation is not None:
+            target_rotation = np.asarray(target_rotation, dtype=np.float64)
+            if (target_rotation.shape != (3, 3)
+                    or not np.all(np.isfinite(target_rotation))
+                    or not np.allclose(target_rotation.T @ target_rotation, np.eye(3), atol=1e-6)
+                    or not np.isclose(np.linalg.det(target_rotation), 1.0, atol=1e-6)):
+                raise ValueError("target_rotation must be a finite SO(3) matrix.")
+            if (not np.isfinite(orientation_tolerance) or orientation_tolerance <= 0
+                    or not np.isfinite(orientation_weight) or orientation_weight <= 0):
+                raise ValueError("Orientation tolerance and weight must be finite and positive.")
+
+        def residual():
+            # 分别用 m、rad 判断位置和姿态收敛；线搜索的加权误差统一为 m。
+            position, _, rotation = get_tcp_pose(self.data)
+            ep = target_position - position
+            er = (np.zeros(3) if target_rotation is None else
+                  rotation_error_world(target_rotation, rotation))
+            task_error = (ep if target_rotation is None else
+                          np.concatenate([ep, orientation_weight * er]))
+            return task_error, float(np.linalg.norm(ep)), float(np.linalg.norm(er))
 
         # ----------------------------------------------------
         # 4.1 检查目标位置
@@ -311,34 +355,14 @@ class PandaIKSolver:
             self._set_configuration(q)
 
             # ----------------------------------------
-            # 5.2 FK
+            # 5.2 正向运动学（FK）
             # ----------------------------------------
 
-            current_position, _, _ = get_tcp_pose(
-                self.data
-            )
+            task_error, position_norm, orientation_norm = residual()
+            error_norm = float(np.linalg.norm(task_error))
 
-            # ----------------------------------------
-            # 5.3 TCP 位置误差
-            # ----------------------------------------
-
-            position_error = (
-                target_position
-                -
-                current_position
-            )
-
-            error_norm = float(
-                np.linalg.norm(
-                    position_error
-                )
-            )
-
-            # ----------------------------------------
-            # 5.4 判断是否收敛
-            # ----------------------------------------
-
-            if error_norm < self.tolerance:
+            if (position_norm < self.tolerance
+                    and orientation_norm < orientation_tolerance):
 
                 success = True
                 reason = "converged"
@@ -346,10 +370,10 @@ class PandaIKSolver:
                 break
 
             # ----------------------------------------
-            # 5.5 计算当前平移 Jacobian
+            # 5.5 计算当前平移与旋转 Jacobian
             # ----------------------------------------
 
-            jacp, _, _, _ = get_tcp_jacobian(
+            jacp, jacr, _, _ = get_tcp_jacobian(
                 self.model,
                 self.data,
             )
@@ -358,10 +382,9 @@ class PandaIKSolver:
             # 5.6 DLS 关节增量
             # ----------------------------------------
 
-            delta_q = self._compute_dls_step(
-                jacp,
-                position_error,
-            )
+            task_jacobian = (jacp if target_rotation is None else
+                             np.vstack([jacp, orientation_weight * jacr]))
+            delta_q = self._compute_dls_step(task_jacobian, task_error)
 
             # ----------------------------------------
             # 5.7 回溯线搜索
@@ -402,20 +425,11 @@ class PandaIKSolver:
                     candidate_q
                 )
 
-                candidate_position, _, _ = get_tcp_pose(
-                    self.data
-                )
-
-                candidate_error = float(
-                    np.linalg.norm(
-                        target_position
-                        -
-                        candidate_position
-                    )
-                )
+                candidate_residual, _, _ = residual()
+                candidate_error = float(np.linalg.norm(candidate_residual))
 
                 # ------------------------------------
-                # 只接受能减小位置误差的增量
+                # 只接受能减小任务误差（位置或加权位姿）的增量
                 # ------------------------------------
 
                 if candidate_error < error_norm - 1e-10:
@@ -454,9 +468,10 @@ class PandaIKSolver:
             )
         )
 
-        if final_error < self.tolerance:
-
-            success = True
+        _, _, final_orientation_error = residual()
+        success = (final_error < self.tolerance
+                   and final_orientation_error < orientation_tolerance)
+        if success:
             reason = "converged"
 
         # ====================================================
@@ -482,6 +497,8 @@ class PandaIKSolver:
             ),
 
             "position_error": final_error,
+            "orientation_error": final_orientation_error,  # 单位 rad；仅求解位置时为零
+
         }
 
         return result
