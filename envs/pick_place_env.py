@@ -423,13 +423,19 @@ class PickPlaceEnv(gym.Env):
         sim_time = float(self.data.time) if np.isfinite(self.data.time) else 0.
         info = {"task_mode": self.task_mode, "is_success": False, "failure_reason": "NUMERICAL_ERROR",
                 "termination_reason": "NUMERICAL_ERROR", "failure_detail": detail,
+                "tcp_orientation_error_rad": None,
                 "observation_sanitized": True, "tcp_position_error": None, "cube_position_error": None,
                 "cube_bottom_clearance": None, "grasp_candidate": False, "cube_table_contact": False,
                 "gripper_opening": None, "reward_terms": {"failure_penalty": reward},
                 "episode_step": self.episode_step, "simulation_time": sim_time, "physics_steps": physics_steps,
                 "episode": {"r": self.episode_return, "l": self.episode_step, "t": sim_time,
                             "is_success": False}}
-        return np.zeros(OBSERVATION_SIZE, dtype=np.float32), float(reward), True, False, info
+        return np.zeros(self.observation_space.shape, dtype=np.float32), float(reward), True, False, info
+
+    def _task_success(self, valid, failure):
+        """Shared success hook; subclasses may latch a completed physical hold."""
+        return bool(valid and failure is None and self.timers[TASK_MODES.index(self.task_mode)]
+                    >= self.hold_durations[TASK_MODES.index(self.task_mode)])
 
     def _finite_dynamics(self):
         """积分前后检查原始状态和警告，避免 MuJoCo 自动重置掩盖严重物理异常。"""
@@ -495,8 +501,7 @@ class PickPlaceEnv(gym.Env):
             if self.ik_failures >= self.config.max_ik_failures:
                 failure = failure or "IK_FAILED"
             self.episode_step += 1
-            success = bool(valid and failure is None and self.timers[TASK_MODES.index(self.task_mode)]
-                           >= self.hold_durations[TASK_MODES.index(self.task_mode)])
+            success = self._task_success(valid, failure)
             terminated = bool(success or failure is not None)
             timeout = (self.episode_step >= self.config.max_episode_steps
                        or self.data.time >= self.config.max_simulation_time_s-1e-12)

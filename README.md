@@ -8,6 +8,8 @@ python -m pip install -r requirements.txt
 ```
 ### 0.2 学习笔记：见notes
 
+Day14 当前训练方法、历史实验结论、保留模型与评测结果见 [Day14 PPO Reach](notes/day14.md)。
+
 ## 计划
 | 阶段 | 学什么 | 做什么 | 最终产物 | 算力 |
 |---|---|---|---|---|
