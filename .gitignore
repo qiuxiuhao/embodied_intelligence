@@ -65,3 +65,6 @@ checkpoints/
 # Windows
 Thumbs.db
 Desktop.ini
+
+# tests
+tests/
