@@ -1,0 +1,16 @@
+{
+  "seed": 42,
+  "device": "cpu",
+  "torch_threads": 1,
+  "epochs": 500,
+  "batch_size": 512,
+  "learning_rate": 0.0003,
+  "hidden_sizes": [256, 256],
+  "xyz_loss_weight": 1.0,
+  "gripper_loss_weight": 1.0,
+  "phase_balance": 0.5,
+  "max_grad_norm": 1.0,
+  "initial_std": [0.10, 0.10, 0.10, 0.05],
+  "eval_interval": 10,
+  "eval_episodes": "all"
+}

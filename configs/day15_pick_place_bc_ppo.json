@@ -1,0 +1,25 @@
+{
+  "environment_version": "pick_place_gc_v1",
+  "reward_version": "day13_potential_v1",
+  "timeout_mode": "external_truncation",
+  "observation_version": "day13_raw_94_v1",
+  "dataset_version": "pick_place_transitions_v1",
+  "gravity_compensation": true,
+  "env": {
+    "action_scale_m": 0.005,
+    "frame_skip": 20,
+    "max_episode_steps": 750,
+    "max_simulation_time_s": 30.0
+  },
+  "expert": {},
+  "acceptance": {
+    "random_seed_start": 310000,
+    "random_episodes": 100,
+    "minimum_success_rate": 0.95
+  },
+  "demonstrations": {
+    "train": {"seed_start": 400000, "episodes": 500},
+    "validation": {"seed_start": 410000, "episodes": 100}
+  },
+  "reserved_holdout": {"seed_start": 500000, "episodes": 100}
+}

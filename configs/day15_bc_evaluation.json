@@ -1,0 +1,11 @@
+{
+  "version": "day15_bc_evaluation_v1",
+  "test": {"seed_start": 900000, "episodes": 200},
+  "historical_exclusions": {
+    "bc_train": {"seed_start": 400000, "episodes": 1000},
+    "bc_validation": {"seed_start": 410000, "episodes": 200},
+    "old_holdout": {"seed_start": 500000, "episodes": 100},
+    "ppo_training": {"seed_start": 600000, "episodes": 100000},
+    "ppo_reserved_test": {"seed_start": 800000, "episodes": 200}
+  }
+}

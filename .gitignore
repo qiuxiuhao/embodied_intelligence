@@ -53,6 +53,9 @@ checkpoints/
 *.mp4
 *.avi
 
+# README demonstration video
+!docs/media/pick_place_bc.mp4
+
 # IDE settings
 .idea/
 .vscode/
